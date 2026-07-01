@@ -1,0 +1,33 @@
+# EditorConfig - https://editorconfig.org
+# Style baseline for Direct LAN Multiplayer. Keeps formatting consistent so the
+# repo reads like a real project, not a one-off dump.
+#
+# PROJECT RULE: no em dashes or en dashes anywhere (code, comments, strings, docs).
+# Use a plain hyphen "-". EditorConfig cannot block specific unicode characters by
+# itself; once git is initialised this rule will be enforced by a pre-commit hook
+# (see docs/ARCHITECTURE_PLAN.md). Until then, keep it in mind when editing.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.cs]
+indent_size = 4
+# Common C# conventions
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = true:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+
+[*.{json,md,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

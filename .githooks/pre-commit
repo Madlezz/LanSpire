@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+# Pre-commit hook for STS2LanPcMod (C# .NET 9)
+#
+# Checks:
+#   1. Reject em dash (—, U+2014) and en dash (–, U+2013) in .cs and .md files
+#   2. Build the project in Release mode and fail on errors
+#
+
+set -euo pipefail
+
+# ── Set STS2_GAME_DIR if not already exported ───────────────────────────────
+if [ -z "${STS2_GAME_DIR:-}" ]; then
+  # Check for a local override file (not committed to git)
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo ".")"
+  if [ -f "$REPO_ROOT/.sts2-game-dir" ]; then
+    export STS2_GAME_DIR="$(cat "$REPO_ROOT/.sts2-game-dir" | tr -d '\r\n')"
+  else
+    echo "ERROR: STS2_GAME_DIR not set and no .sts2-game-dir file found."
+    echo ""
+    echo "Set it one of these ways:"
+    echo "  1. export STS2_GAME_DIR=\"/path/to/Slay the Spire 2\""
+    echo "  2. echo '/path/to/Slay the Spire 2' > .sts2-game-dir"
+    echo "  3. git config core.hooksPath /dev/null  (to skip pre-commit)"
+    echo ""
+    exit 1
+  fi
+fi
+
+# ── ANSI colors for readable output ──────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+PASS_COUNT=0
+FAIL_COUNT=0
+
+pass() {
+  echo -e "${GREEN}✔ PASS:${NC} $1"
+  PASS_COUNT=$((PASS_COUNT + 1))
+}
+
+fail() {
+  echo -e "${RED}✘ FAIL:${NC} $1"
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+}
+
+info() {
+  echo -e "${YELLOW}ℹ${NC} $1"
+}
+
+# ── Check 1: Reject em dash (—) and en dash (–) in staged .cs and .md files ──
+# These characters are easy to type accidentally but cause issues in code and
+# documentation. We specifically match only U+2014 and U+2013 using grep -P
+# with Unicode escapes, so CJK characters are NOT affected.
+info "Checking for em/en dashes in staged .cs and .md files..."
+
+DASH_FOUND=0
+
+# Get list of staged files matching our extensions (excluding deleted files)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=d -- '*.cs' '*.md' 2>/dev/null || true)
+
+if [ -z "$STAGED_FILES" ]; then
+  info "No staged .cs or .md files to check."
+  pass "No em/en dash check needed (no staged .cs/.md files)"
+else
+  while IFS= read -r file; do
+    # grep -P enables Perl-compatible regex for Unicode escapes
+    # -r is not needed since we check one file at a time; -n shows line numbers
+    if grep -nP '[\x{2014}\x{2013}]' "$file" > /dev/null 2>&1; then
+      DASH_FOUND=1
+      echo -e "${RED}  → Dashes found in: $file${NC}"
+      grep -nP '[\x{2014}\x{2013}]' "$file" | head -20 | while IFS= read -r line; do
+        echo "      $line"
+      done
+    fi
+  done <<< "$STAGED_FILES"
+
+  if [ "$DASH_FOUND" -eq 1 ]; then
+    fail "Em dash (—, U+2014) or en dash (–, U+2013) found in staged files"
+    echo "  Replace them with regular hyphens (-) or double hyphens (--) before committing."
+  else
+    pass "No em/en dashes found in staged .cs/.md files"
+  fi
+fi
+
+# ── Check 2: Build the project in Release mode ──────────────────────────────
+# We run dotnet build -c Release. Warnings are tolerated for now; only actual
+# build errors will cause the commit to be rejected.
+info "Building project in Release mode..."
+
+BUILD_OUTPUT=$(dotnet build -c Release 2>&1) || true
+
+# Check if the build succeeded by looking at the exit code indirectly.
+# We capture output and check for "Build succeeded" or error patterns.
+if echo "$BUILD_OUTPUT" | grep -q "Build succeeded"; then
+  # Even with "Build succeeded", check error count explicitly
+  ERROR_LINE=$(echo "$BUILD_OUTPUT" | grep -iE "^\s*[0-9]+ Error" || echo "")
+  if [ -n "$ERROR_LINE" ]; then
+    ERROR_COUNT=$(echo "$ERROR_LINE" | grep -oP '^\s*\K[0-9]+' || echo "0")
+    if [ "$ERROR_COUNT" -gt 0 ]; then
+      fail "dotnet build -c Release completed with $ERROR_COUNT error(s)"
+      echo "$BUILD_OUTPUT" | grep -iE "error " | head -20
+    else
+      pass "dotnet build -c Release succeeded (no errors)"
+    fi
+  else
+    pass "dotnet build -c Release succeeded (no errors)"
+  fi
+else
+  # Build did not print "Build succeeded" — check if it's a real failure
+  if echo "$BUILD_OUTPUT" | grep -qi "build FAILED"; then
+    fail "dotnet build -c Release FAILED"
+    echo "$BUILD_OUTPUT" | grep -iE "error " | head -20
+  else
+    # Fallback: try running it again to get a real exit code
+    if ! dotnet build -c Release > /dev/null 2>&1; then
+      fail "dotnet build -c Release FAILED"
+      echo "$BUILD_OUTPUT" | tail -30
+    else
+      pass "dotnet build -c Release succeeded"
+    fi
+  fi
+fi
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+echo ""
+echo "════════════════════════════════════════"
+echo -e "  Results: ${GREEN}$PASS_COUNT passed${NC}, ${RED}$FAIL_COUNT failed${NC}"
+echo "════════════════════════════════════════"
+
+if [ "$FAIL_COUNT" -gt 0 ]; then
+  echo -e "${RED}Commit rejected. Fix the issues above and try again.${NC}"
+  exit 1
+fi
+
+echo -e "${GREEN}All checks passed. Commit allowed.${NC}"
+exit 0

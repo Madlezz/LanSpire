@@ -1,0 +1,15 @@
+LANSpire
+========
+
+INSTALL
+-------
+1. Drag the "LanSpire" folder into your game's "mods" directory.
+2. Launch the game.
+3. Main menu -> Multiplayer -> Host LAN or Join LAN.
+
+That's it. The mod auto-configures on first launch.
+
+Full documentation, FAQ, troubleshooting, and source code:
+https://github.com/Madlezz/LanSpire
+
+Built against STS2 v0.107.1.

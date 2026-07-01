@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>LanSpire</AssemblyName>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="LanSpireTests" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>$(STS2_GAME_DIR)/data_sts2_windows_x86_64/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="GodotSharp">
+      <HintPath>$(STS2_GAME_DIR)/data_sts2_windows_x86_64/GodotSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="sts2">
+      <HintPath>$(STS2_GAME_DIR)/data_sts2_windows_x86_64/sts2.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <GameModsDir>$(STS2_GAME_DIR)\mods\LanSpire</GameModsDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(GameModsDir)" Condition="!Exists('$(GameModsDir)')" />
+    <Copy SourceFiles="$(OutputPath)LanSpire.dll" DestinationFolder="$(GameModsDir)" />
+    <Copy SourceFiles="$(OutputPath)LanSpire.pdb" DestinationFolder="$(GameModsDir)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\LanSpire.json" DestinationFolder="$(GameModsDir)" />
+    <Message Text="Deployed LanSpire to $(GameModsDir)" Importance="high" />
+  </Target>
+</Project>

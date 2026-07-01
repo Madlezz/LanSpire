@@ -1,0 +1,12 @@
+{
+  "id": "LanSpire",
+  "name": "LANSpire",
+  "author": "Madlezz",
+  "description": "Play co-op over your local network or VPN. Host or join by IP:port with LAN auto-discovery. Works alongside Steam multiplayer. Built against STS2 v0.107.1.",
+  "version": "v0.10.0",
+  "has_pck": false,
+  "has_dll": true,
+  "min_game_version": "0.107.1",
+  "dependencies": [],
+  "affects_gameplay": true
+}

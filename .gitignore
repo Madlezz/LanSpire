@@ -1,0 +1,29 @@
+# Build output
+bin/
+obj/
+*.dll
+*.pdb
+*.zip
+release/
+docs/
+ROADMAP.md
+HANDOFF.md
+
+# Test output
+LanSpireTests/bin/
+LanSpireTests/obj/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Dev machine local config (not committed)
+.sts2-game-dir
